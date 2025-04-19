@@ -96,7 +96,6 @@ var signTransactionCmd = &cobra.Command{
 			return
 		}
 
-		// Prepare transaction message
 		transaction := map[string]interface{}{
 			"sender":    publicKeyHex,
 			"recipient": recipient,
