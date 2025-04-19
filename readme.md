@@ -1,6 +1,4 @@
-Here's an updated `README.md` to include the blockchain node as part of the project:
 
-```markdown
 # Startrix Task
 
 Startrix Task is a multi-component project consisting of a backend API, a CLI tool, a frontend application, and a blockchain node. It is designed to demonstrate a blockchain-based wallet system with a modern web interface and command-line utilities.
@@ -148,7 +146,7 @@ The project includes a `docker-compose.yml` file to run MongoDB. To set up and r
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-```
+
 
 ### Updates:
 - Added **Blockchain Node** section under **Features** to describe its role and interaction.
