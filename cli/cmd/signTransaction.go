@@ -1,151 +1,125 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
-// signTransactionCmd represents the signTransaction command
 var signTransactionCmd = &cobra.Command{
 	Use:   "signTransaction",
-	Short: "Sign Transaction",
+	Short: "Sign Transaction using Ed25519",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		wallets, err := filepath.Glob("./wallet/*.json")
 		if err != nil || len(wallets) == 0 {
-			fmt.Println(Red + "❌ No wallet files found in ./wallet")
+			fmt.Println(Red + "❌ No wallet files found in ./wallet" + Reset)
 			return
 		}
 
-		fmt.Println(Green + "🔐 Select a wallet:")
+		fmt.Println(Yellow + "🔐 Select a wallet:" + Reset)
 		for i, file := range wallets {
 			fmt.Printf("[%d] %s\n", i+1, file)
 		}
 
-		fmt.Print(Yellow + "Enter the number: ")
+		fmt.Print(Yellow + "Enter the number: " + Reset)
 		var choice int
 		fmt.Scanln(&choice)
 
 		if choice < 1 || choice > len(wallets) {
-			fmt.Println(Red + "❌ Invalid choice.")
+			fmt.Println(Red + "❌ Invalid choice." + Reset)
 			return
 		}
 
 		selectedWallet := wallets[choice-1]
-		fmt.Println(Green+"✅ Selected wallet:", selectedWallet)
+		fmt.Println(Green + "✅ Selected wallet: " + selectedWallet + Reset)
 
-		// Load the selected wallet JSON file
 		walletData, err := os.ReadFile(selectedWallet)
 		if err != nil {
-			fmt.Println(Red+"❌ Failed to read the wallet file:", err)
+			fmt.Println(Red + "❌ Failed to read the wallet file: " + err.Error() + Reset)
 			return
 		}
 		var wallet map[string]string
 		err = json.Unmarshal(walletData, &wallet)
 		if err != nil {
-			fmt.Println(Red+"❌ Failed to parse the wallet file:", err)
+			fmt.Println(Red + "❌ Failed to parse the wallet file: " + err.Error() + Reset)
 			return
 		}
 
-		publicKey, ok := wallet["publicKey"]
+		publicKeyHex, ok := wallet["publicKey"]
 		if !ok {
-			fmt.Println(Red + "❌ publicKey not found in the wallet file.")
+			fmt.Println(Red + "❌ publicKey not found in the wallet file." + Reset)
 			return
 		}
-
-		privateKey, ok := wallet["privateKey"]
+		privateKeyHex, ok := wallet["privateKey"]
 		if !ok {
-			fmt.Println(Red + "❌ privateKey not found in the wallet file.")
-			return
-		}
-		fmt.Println(Green + "✅ Wallet file loaded successfully.")
-		fmt.Print(Yellow + "Enter the public key of the recipient: ")
-		var recipientPublicKey string
-		fmt.Scanln(&recipientPublicKey)
-
-		if recipientPublicKey == "" {
-			fmt.Println(Red + "❌ Recipient public key cannot be empty.")
+			fmt.Println(Red + "❌ privateKey not found in the wallet file." + Reset)
 			return
 		}
 
-		fmt.Println(Green+"✅ Recipient public key entered:", recipientPublicKey)
-		fmt.Print(Yellow + "Enter the amount to send: ")
+		_, err = hex.DecodeString(publicKeyHex)
+		if err != nil {
+			fmt.Println(Red + "❌ Invalid public key format: " + err.Error() + Reset)
+			return
+		}
+		privateKey, err := hex.DecodeString(privateKeyHex)
+		if err != nil {
+			fmt.Println(Red + "❌ Invalid private key format: " + err.Error() + Reset)
+			return
+		}
+		if len(privateKey) != ed25519.SeedSize {
+			fmt.Println(Red + "❌ Expected 32-byte private key seed for Ed25519" + Reset)
+			return
+		}
+		privKey := ed25519.NewKeyFromSeed(privateKey)
+
+		fmt.Print(Yellow + "Enter the public key of the recipient: " + Reset)
+		var recipient string
+		fmt.Scanln(&recipient)
+		if recipient == "" {
+			fmt.Println(Red + "❌ Recipient public key cannot be empty." + Reset)
+			return
+		}
+
+		fmt.Print(Yellow + "Enter the amount to send: " + Reset)
 		var amount float64
 		fmt.Scanln(&amount)
-
 		if amount <= 0 {
-			fmt.Println(Red + "❌ Amount must be greater than zero.")
+			fmt.Println(Red + "❌ Amount must be greater than zero." + Reset)
 			return
 		}
 
-		fmt.Println(Green+"✅ Amount entered:", amount)
-		// Create the transaction
+		// Prepare transaction message
 		transaction := map[string]interface{}{
-			"sender":    publicKey,
-			"recipient": recipientPublicKey,
+			"sender":    publicKeyHex,
+			"recipient": recipient,
 			"amount":    amount,
 		}
 
-		// Serialize the transaction to JSON
-		transactionData, err := json.Marshal(transaction)
-		if err != nil {
-			fmt.Println(Red+"❌ Failed to serialize the transaction:", err)
-			return
-		}
-		hash := sha256.Sum256(transactionData)
+		message := publicKeyHex + recipient + fmt.Sprintf("%.2f", amount)
+		hash := sha256.Sum256([]byte(message))
+		signature := ed25519.Sign(privKey, hash[:])
 
-		privateKeyBytes, err := hex.DecodeString(privateKey)
-		if err != nil {
-			fmt.Println(Red+"❌ Failed to decode private key:", err)
-			return
-		}
-
-		d := new(big.Int).SetBytes(privateKeyBytes)
-		curve := elliptic.P256()
-		priv := new(ecdsa.PrivateKey)
-		priv.D = d
-		priv.PublicKey.Curve = curve
-		priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
-
-		// Sign the transaction hash
-		r, s, err := ecdsa.Sign(rand.Reader, priv, hash[:])
-		if err != nil {
-			fmt.Println(Red+"❌ Failed to sign transaction:", err)
-			return
-		}
-
-		signature := append(r.Bytes(), s.Bytes()...)
-		signatureStr := base64.StdEncoding.EncodeToString(signature)
-
-		transaction["signature"] = signatureStr
+		transaction["signature"] = base64.StdEncoding.EncodeToString(signature)
 
 		finalTx, err := json.MarshalIndent(transaction, "", "  ")
 		if err != nil {
-			fmt.Println(Red+"❌ Failed to marshal final transaction:", err)
+			fmt.Println(Red + "❌ Failed to marshal transaction: " + err.Error() + Reset)
 			return
 		}
 
-		fmt.Println(Green + "\n✅ Transaction signed successfully Paste it in the website")
+		fmt.Println("\n" + Green + "✅ Transaction signed successfully! Paste it in the website." + Reset)
 		fmt.Println(string(finalTx))
-
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(signTransactionCmd)
-
 }
