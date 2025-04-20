@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 type Transaction struct {
@@ -32,6 +33,10 @@ func main() {
 
 	// Initialize genesis block
 	initGenesisBlock()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*", // allow all origins
+		AllowHeaders: "*", // optional: allow all headers
+	}))
 
 	app.Post("/transaction", func(c *fiber.Ctx) error {
 		var tx Transaction

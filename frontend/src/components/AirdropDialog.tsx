@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import axiosInstance from "@/lib/axiosInstance";
 
 interface AirdropDialogProps {
     open: boolean;
@@ -18,10 +20,17 @@ const AirdropDialog: React.FC<AirdropDialogProps> = ({ open, setOpen }) => {
     const [publicKey, setPublicKey] = useState("");
 
     const handleAirdrop = () => {
-        if (publicKey.trim()) {
-            console.log("Requesting airdrop for public key:", publicKey);
-        } else {
-            console.error("Public key is required");
+        try {
+            if (publicKey.trim()) {
+                console.log("Requesting airdrop for public key:", publicKey);
+                axiosInstance.post('/airdrop',{address:publicKey})
+                toast.success(<p className="text-white">Airdrop recieved successfully</p>,{style:{backgroundColor:"green"}})
+            } else {
+                toast.warning(<p>Public key is required</p>,{style:{backgroundColor:"orange"}});
+            }            
+        } catch (error) {
+            console.log(error)
+            toast.error(<p className="text-white" >Please try again</p>,{style:{backgroundColor:"red"}})
         }
     };
 

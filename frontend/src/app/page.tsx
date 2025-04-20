@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast, Toaster } from "sonner"
 import AirdropDialog from "@/components/AirdropDialog"
 import CheckBalance from "@/components/CheckBalance"
-
+import { AxiosError } from "axios"
+import axiosInstance from "@/lib/axiosInstance"
+import BlockExplorer from "@/components/BlockExplorer"
 interface Transaction {
   amount: number
   recipient: string
@@ -27,6 +29,8 @@ export default function TransactionPage() {
   const [isValid, setIsValid] = useState(false)
   const [airdrop,setAirdrop]=useState(false)
   const [balance,setBalance]=useState(false)
+  const [blockexplorer,setBlockexplorer]=useState(false)
+
   useEffect(() => {
     const savedHistory = localStorage.getItem("transactionHistory")
     if (savedHistory) {
@@ -59,28 +63,36 @@ export default function TransactionPage() {
     }
   }
 
-  const handleSubmit = () => {
-    if (transaction) {
-      setTimeout(() => {
-        const completedTransaction = {
-          ...transaction,
-          timestamp: Date.now(),
-          status: "completed",
-        }
-
-        const updatedHistory = [completedTransaction, ...history]
-        setHistory(updatedHistory)
-
-        localStorage.setItem("transactionHistory", JSON.stringify(updatedHistory))
-
-        toast.success("Coffee Purchased!")
-
-        setJsonInput("")
-        setTransaction(null)
-        setIsValid(false)
-      }, 1500)
-
-      toast.info("Pending")
+  const blockExplorer=async ()=>{
+    setBlockexplorer(true)
+  }
+  const handleSubmit = async () => {
+    try {      
+      if (transaction) {
+          const completedTransaction = {
+            ...transaction,
+            timestamp: Date.now(),
+            status: "completed",
+          }
+  
+          await axiosInstance.post('/transaction',transaction)
+          const updatedHistory = [completedTransaction, ...history]
+          setHistory(updatedHistory)
+          localStorage.setItem("transactionHistory", JSON.stringify(updatedHistory))
+          toast.success(<p className="text-white">Coffee Purchased!</p>,{style:{backgroundColor:"green"}})
+  
+          setJsonInput("")
+          setTransaction(null)
+          setIsValid(false)
+  
+      }
+    } catch (error) {
+      const axiosError=error as AxiosError
+      if(axiosError.status===400){
+        toast.error(<p className="text-white">Insufficient balance</p>,{style:{backgroundColor:"red"}})
+      }else{
+        toast.error(<p className="text-white" >Please try again</p>,{style:{backgroundColor:"red"}})
+      }
     }
   }
 
@@ -120,6 +132,9 @@ export default function TransactionPage() {
             <Button onClick={balanceHandler} className="py-3 px-6 text-xs rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
               Check Balance
             </Button>
+            <Button onClick={blockExplorer} className="py-3 px-6 text-xs rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+              Block Explorer
+            </Button>
           </div>
         </header>
 
@@ -130,7 +145,7 @@ export default function TransactionPage() {
               className="text-lg rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-400 data-[state=active]:to-yellow-500 data-[state=active]:text-white"
             >
               <CoffeeIcon className="mr-2 h-5 w-5" />
-              Buy Coffee
+              Send Coffee
             </TabsTrigger>
             <TabsTrigger
               value="history"
@@ -239,7 +254,7 @@ export default function TransactionPage() {
                     onClick={handleSubmit}
                   >
                     <Coffee className="mr-2 h-5 w-5" />
-                    Buy Coffee
+                    Send Coffee
                   </Button>
                 </CardFooter>
               </Card>
@@ -299,6 +314,7 @@ export default function TransactionPage() {
       <Toaster />
       <AirdropDialog open={airdrop} setOpen={setAirdrop}/>
       <CheckBalance open={balance} setOpen={setBalance}/>
+      <BlockExplorer open={blockexplorer} setOpen={setBlockexplorer}/>
     </div>
   )
 }

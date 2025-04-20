@@ -8,6 +8,8 @@ import {
     DialogDescription,
     DialogClose,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import axiosInstance from "@/lib/axiosInstance";
 
 interface CheckBalanceProps {
     open: boolean;
@@ -18,8 +20,19 @@ const CheckBalance: React.FC<CheckBalanceProps> = ({ open, setOpen }) => {
     const [publicKey, setPublicKey] = useState("");
     const [balance, setBalance] = useState<number | null>(null);
 
-    const handleCheckBalance = () => {
-        setBalance(123.45);
+    const handleCheckBalance = async () => {
+        if(!publicKey || publicKey.trim()===''){
+            toast.warning(<p className="text-white" ></p>,{style:{backgroundColor:"orange"}})
+            return
+        }
+        try {
+            const response=await axiosInstance.get(`/balance/${publicKey}`)
+            const balance=response.data.balance
+            setBalance(balance??0)
+        } catch (error) {
+            console.log(error)
+            toast.error(<p className="text-white" >Please try again</p>,{style:{backgroundColor:"red"}})
+        }
     };
 
     return (
