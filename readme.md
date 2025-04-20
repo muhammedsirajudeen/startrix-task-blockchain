@@ -3,90 +3,246 @@
 
 Startrix Task is a multi-component project consisting of a backend API, a CLI tool, a frontend application, and a blockchain node. It is designed to demonstrate a blockchain-based wallet system with a modern web interface and command-line utilities.
 
+![Startrix Task Overview](https://coffeecoin.muhammedsirajudeen.in/preview.png)
+
 ## Project Structure
 
 The project is organized into the following directories:
 
-- **`backend/`**: A Go-based backend API built with [Fiber](https://gofiber.io/).
+- **`backend-blockchain/`**: A Go-based backend API built with [Fiber](https://gofiber.io/).
 - **`cli/`**: A command-line interface (CLI) tool built with [Cobra](https://github.com/spf13/cobra) for managing wallets.
 - **`frontend/`**: A React-based frontend application built with [Next.js](https://nextjs.org/).
-- **`blockchain/`**: The blockchain node, responsible for verifying and processing transactions.
 
 ## Features
 
 ### Backend
+# API Documentation
+
+## Overview
+This is a RESTful API built with the Fiber framework. It provides endpoints for managing transactions, querying balances, and performing airdrops in a blockchain-like system. The API is configured to run on port `3000`.
+
+---
+
+## Endpoints
+
+### 1. **Create Transaction**
+   - **URL:** `/transaction`
+   - **Method:** `POST`
+   - **Description:** Verifies and records a transaction between two accounts.
+   - **Request Body:**
+     ```json
+     {
+       "sender": "string",        // Hex-encoded public key of the sender
+       "recipient": "string",     // Address of the recipient
+       "amount": 100.0,           // Amount to transfer
+       "signature": "string",     // Base64-encoded signature
+       "previous_block": "string" // (Optional) Previous block hash
+     }
+     ```
+   - **Responses:**
+     - `200 OK`: Transaction verified and recorded.
+     - `400 Bad Request`: Invalid JSON or insufficient balance.
+     - `401 Unauthorized`: Invalid signature.
+
+---
+
+### 2. **Get Account Balance**
+   - **URL:** `/balance/:address`
+   - **Method:** `GET`
+   - **Description:** Retrieves the balance of a specific account.
+   - **Path Parameter:**
+     - `address` (string): The address of the account.
+   - **Responses:**
+     - `200 OK`: Returns the balance of the account.
+       ```json
+       {
+         "address": "string",
+         "balance": 100.0
+       }
+       ```
+
+---
+
+### 3. **Get All Transactions**
+   - **URL:** `/transactions`
+   - **Method:** `GET`
+   - **Description:** Retrieves the entire transaction history.
+   - **Responses:**
+     - `200 OK`: Returns a list of all transactions.
+       ```json
+       [
+         {
+           "sender": "string",
+           "recipient": "string",
+           "amount": 100.0,
+           "signature": "string",
+           "previous_block": "string"
+         }
+       ]
+       ```
+
+---
+
+### 4. **Get Transactions by Address**
+   - **URL:** `/transactions/:address`
+   - **Method:** `GET`
+   - **Description:** Retrieves all transactions associated with a specific address (as sender or recipient).
+   - **Path Parameter:**
+     - `address` (string): The address to filter transactions by.
+   - **Responses:**
+     - `200 OK`: Returns a list of transactions associated with the address.
+       ```json
+       {
+         "transactions": [
+           {
+             "sender": "string",
+             "recipient": "string",
+             "amount": 100.0,
+             "signature": "string",
+             "previous_block": "string"
+           }
+         ]
+       }
+       ```
+
+---
+
+### 5. **Airdrop Coins**
+   - **URL:** `/airdrop`
+   - **Method:** `POST`
+   - **Description:** Adds 100 coins to the balance of a specified account.
+   - **Request Body:**
+     ```json
+     {
+       "address": "string" // Address to receive the airdrop
+     }
+     ```
+   - **Responses:**
+     - `200 OK`: Airdrop successful.
+       ```json
+       {
+         "message": "Airdropped 100 coins",
+         "address": "string",
+         "balance": 200.0
+       }
+       ```
+     - `400 Bad Request`: Invalid request body.
+
+---
+
+## Notes
+- **Transaction Verification:** Transactions are verified using Ed25519 signatures. The sender's public key, recipient address, amount, and signature are validated to ensure authenticity.
+- **Genesis Block:** The system initializes with a genesis block to establish the blockchain structure.
+- **Concurrency:** Mutex locks are used to ensure thread-safe operations on shared resources like transaction history and account balances.
 - RESTful API built with Fiber.
 - Example endpoint: `GET /` returns a "Hello, Fiber!" message.
 - Configured to run on port `3000`.
 - Connects to the blockchain node for transaction validation.
 
-### CLI
-- Wallet management commands:
-  - `createWallet`: Creates a new wallet and saves it as a JSON file.
-  - `signTransaction`: Placeholder for signing transactions.
-- Built with Cobra for easy extensibility.
 
-### Frontend
-- React-based UI built with Next.js.
-- TailwindCSS for styling.
-- Includes a development server, build scripts, and production-ready configurations.
-
-### Blockchain Node
-- A custom blockchain node responsible for validating and processing transactions.
-- Interacts with the backend API to validate transactions.
-- Can be run locally for development or deployed for a testnet or mainnet environment.
-
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Go**: Version `1.22.2` or higher.
-- **Node.js**: Version `16.x` or higher.
-- **Docker**: For running MongoDB via `docker-compose`.
-- **Blockchain Node Dependencies**: If running the blockchain node locally, ensure you have the required blockchain dependencies.
-
-## Getting Started
+## Build Instructions
 
 ### Backend
 
-1. Navigate to the `backend` directory:
+1. Navigate to the `backend-blockchain` directory:
    ```bash
-   cd backend
+   cd backend-blockchain
    ```
 
-2. Install dependencies:
+2. Build the backend binary:
    ```bash
-   go mod tidy
+   go build -o backend-server main.go
    ```
 
-3. Run the backend server:
-   ```bash
-   go run main.go
-   ```
+   This will generate an executable file named `backend-server`.
 
-   The API will be available at `http://localhost:3000`.
+3. Run the binary:
+   ```bash
+   ./backend-server
+   ```
 
 ### CLI
 
-1. Navigate to the `cli` directory:
+# CLI Documentation
+
+The `cli` directory contains the command-line interface (CLI) implementation for interacting with the application. This CLI allows users to perform various operations such as creating wallets and managing tasks.
+
+## Prerequisites
+
+Ensure you have the following installed on your system:
+- [Go](https://golang.org/dl/) (version 1.16 or later)
+
+## Usage
+
+1. **Navigate to the CLI directory**  
+   Change your working directory to the `cli` folder where the CLI source code is located.
+
+2. **Build the CLI binary**  
+   Use the `go build` command to compile the CLI source code into an executable binary. The output binary will be named `wallet-cli`.
+
+3. **Execute CLI commands**  
+   Run the generated binary to execute commands. For example, you can create a new wallet using the `createWallet` command.
+
+## Example Commands
+
+- **Install Startrix-AI Binary (Linux)**  
+   If you are using Linux, you can install the `startrix-ai` binary by running:
    ```bash
-   cd cli
+   sudo install -m 755 wallet-cli /usr/local/bin/startrix-ai
+   ```
+   This will allow you to use the `startrix-ai` command globally.
+
+## Notes
+
+- Ensure the `cli` directory contains the `main.go` file, which serves as the entry point for the CLI application.
+- The `wallet-cli` binary must have execute permissions. If not, you can grant permissions using:
+  ```bash
+  chmod +x wallet-cli
+  ```
+- Refer to the application's documentation or source code for additional commands and their usage.
    ```
 
-2. Install dependencies:
-   ```bash
-   go mod tidy
-   ```
+   The API will be available at `http://localhost:3000`.
+   """
+   This module provides functionality for creating and managing cryptocurrency wallets, 
+   as well as signing transactions. It includes the following key functions:
 
-3. To create a new wallet, use the `createWallet` command:
-   ```bash
-   go run main.go createWallet
-   ```
+   Functions:
+   ----------
+   - createWallet():
+      Creates a new cryptocurrency wallet. This function generates a new private key 
+      and derives the corresponding public key and wallet address. The wallet can be 
+      used to send and receive cryptocurrency transactions.
+           
+      ### Example: Create Wallet
 
-4. To sign a transaction, use the `signTransaction` command:
-   ```bash
-   go run main.go signTransaction
-   ```
+      To create a new wallet using the `startrix-cli`, run the following command:
+
+      ```bash
+         startrix-cli createWallet
+      ```
+
+      This will generate a new wallet with a unique address and private key. The output will look similar to:
+
+      ```plaintext
+      Wallet created successfully!
+      Address: 0x123456789abcdef
+      Private Key: abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      ```
+
+      Make sure to securely store the private key, as it is required to sign transactions.
+
+   - signTransaction(transaction, privateKey):
+      Signs a cryptocurrency transaction using the provided private key. This ensures 
+      the authenticity and integrity of the transaction. The function takes the 
+      transaction data and the private key as input, and returns the signed transaction.
+
+   Other Commands:
+   ---------------
+   - Additional helper functions or utilities may be included in the module to support 
+     wallet creation and transaction signing, such as key generation, address derivation, 
+     and cryptographic operations.
+   """
 
 ### Frontend
 
@@ -105,34 +261,9 @@ Before you begin, ensure you have the following installed:
    npm run dev
    ```
 
-   The frontend will be available at `http://localhost:3000`.
+   The frontend will be available at `http://localhost:3001`.
 
-### Blockchain Node
 
-1. Navigate to the `blockchain` directory:
-   ```bash
-   cd blockchain
-   ```
-
-2. Install any necessary dependencies for the blockchain node.
-
-3. Run the blockchain node:
-   ```bash
-   go run main.go
-   ```
-
-   The node will start and begin validating transactions sent by the backend API.
-
-### Docker
-
-The project includes a `docker-compose.yml` file to run MongoDB. To set up and run MongoDB in a container:
-
-1. Run the following command in the root directory of the project:
-   ```bash
-   docker-compose up -d
-   ```
-
-   This will start a MongoDB container that you can use with the backend.
 
 ## Folder Structure
 
@@ -140,17 +271,8 @@ The project includes a `docker-compose.yml` file to run MongoDB. To set up and r
 - **`cli/`**: Contains the Go CLI tool for managing wallets.
 - **`frontend/`**: Contains the React frontend code (Next.js).
 - **`blockchain/`**: Contains the blockchain node code that validates transactions and manages the blockchain.
-- **`docker-compose.yml`**: Docker configuration for running MongoDB.
 - **`README.md`**: Documentation for the project.
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
-### Updates:
-- Added **Blockchain Node** section under **Features** to describe its role and interaction.
-- Included **Blockchain Node** setup instructions under **Getting Started** to guide users through running the node locally.
-- Updated **Folder Structure** to reflect the inclusion of the `blockchain/` directory.
-
-Let me know if you need further adjustments or details added!
