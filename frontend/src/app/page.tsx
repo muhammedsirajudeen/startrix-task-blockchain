@@ -13,6 +13,7 @@ import CheckBalance from "@/components/CheckBalance"
 import { AxiosError } from "axios"
 import axiosInstance from "@/lib/axiosInstance"
 import BlockExplorer from "@/components/BlockExplorer"
+import { CliInstall } from "@/components/Installation"
 interface Transaction {
   amount: number
   recipient: string
@@ -124,6 +125,9 @@ export default function TransactionPage() {
           <h1 className="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700">
             Coffee Coin
           </h1>
+          <div className="flex w-full justify-center">
+            <CliInstall/>
+          </div>
           <p className="text-amber-800/70">Support creators with secure blockchain transactions</p>
           <div className="flex justify-center gap-4 mt-6">
             <Button onClick={airdropHandler} className="py-3 px-6 text-xs rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
