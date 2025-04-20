@@ -34,8 +34,8 @@ func main() {
 	// Initialize genesis block
 	initGenesisBlock()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // allow all origins
-		AllowHeaders: "*", // optional: allow all headers
+		AllowOrigins: "*",
+		AllowHeaders: "*",
 	}))
 
 	app.Post("/transaction", func(c *fiber.Ctx) error {
