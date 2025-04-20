@@ -9,8 +9,7 @@
 *.log
 *.tmp
 *.swp
-*.mod
-*.sum
+
 
 # Binaries
 /backend/tmp/main
@@ -44,3 +43,15 @@ yarn-error.log*
 # OS-generated files
 .DS_Store
 Thumbs.db
+
+
+
+# Terraform-related files
+*.tfstate
+*.tfstate.*
+.crash
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+terraform.tfplan
