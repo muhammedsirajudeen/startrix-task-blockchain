@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Code, Clock, Copy, Coffee, CoffeeIcon, Coins } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast, Toaster } from "sonner"
+import AirdropDialog from "@/components/AirdropDialog"
+import CheckBalance from "@/components/CheckBalance"
 
 interface Transaction {
   amount: number
@@ -25,7 +25,8 @@ export default function TransactionPage() {
   const [transaction, setTransaction] = useState<Transaction | null>(null)
   const [history, setHistory] = useState<Transaction[]>([])
   const [isValid, setIsValid] = useState(false)
-
+  const [airdrop,setAirdrop]=useState(false)
+  const [balance,setBalance]=useState(false)
   useEffect(() => {
     const savedHistory = localStorage.getItem("transactionHistory")
     if (savedHistory) {
@@ -88,10 +89,15 @@ export default function TransactionPage() {
     toast.success("Copied to clipboard")
   }
 
-  // Format address for display
   const formatAddress = (address: string) => {
     if (!address) return ""
     return `${address.substring(0, 8)}...${address.substring(address.length - 8)}`
+  }
+  const airdropHandler=()=>{
+    setAirdrop(true)
+  }
+  const balanceHandler=()=>{
+    setBalance(true)
   }
 
   return (
@@ -107,6 +113,14 @@ export default function TransactionPage() {
             Coffee Coin
           </h1>
           <p className="text-amber-800/70">Support creators with secure blockchain transactions</p>
+          <div className="flex justify-center gap-4 mt-6">
+            <Button onClick={airdropHandler} className="py-3 px-6 text-xs rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+              Request Airdrop
+            </Button>
+            <Button onClick={balanceHandler} className="py-3 px-6 text-xs rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+              Check Balance
+            </Button>
+          </div>
         </header>
 
         <Tabs defaultValue="submit" className="w-full max-w-4xl mx-auto">
@@ -283,6 +297,8 @@ export default function TransactionPage() {
         </Tabs>
       </div>
       <Toaster />
+      <AirdropDialog open={airdrop} setOpen={setAirdrop}/>
+      <CheckBalance open={balance} setOpen={setBalance}/>
     </div>
   )
 }
