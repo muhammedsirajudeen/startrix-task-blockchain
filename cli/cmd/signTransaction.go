@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -11,12 +13,13 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/scrypt"
+	"golang.org/x/term"
 )
 
 var signTransactionCmd = &cobra.Command{
 	Use:   "signTransaction",
 	Short: "Sign Transaction using Ed25519",
-	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		wallets, err := filepath.Glob("./wallet/*.json")
 		if err != nil || len(wallets) == 0 {
@@ -46,36 +49,81 @@ var signTransactionCmd = &cobra.Command{
 			fmt.Println(Red + "❌ Failed to read the wallet file: " + err.Error() + Reset)
 			return
 		}
-		var wallet map[string]string
-		err = json.Unmarshal(walletData, &wallet)
-		if err != nil {
+
+		var encrypted struct {
+			Data   string `json:"data"`
+			Salt   string `json:"salt"`
+			Wallet string `json:"wallet"`
+		}
+		if err := json.Unmarshal(walletData, &encrypted); err != nil {
 			fmt.Println(Red + "❌ Failed to parse the wallet file: " + err.Error() + Reset)
 			return
 		}
 
-		publicKeyHex, ok := wallet["publicKey"]
-		if !ok {
-			fmt.Println(Red + "❌ publicKey not found in the wallet file." + Reset)
-			return
-		}
-		privateKeyHex, ok := wallet["privateKey"]
-		if !ok {
-			fmt.Println(Red + "❌ privateKey not found in the wallet file." + Reset)
+		fmt.Print(Yellow + "🔑 Enter password: " + Reset)
+		password, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		if err != nil {
+			fmt.Println(Red + "❌ Failed to read password." + Reset)
 			return
 		}
 
-		_, err = hex.DecodeString(publicKeyHex)
+		salt, err := hex.DecodeString(encrypted.Salt)
 		if err != nil {
-			fmt.Println(Red + "❌ Invalid public key format: " + err.Error() + Reset)
+			fmt.Println(Red + "❌ Invalid salt." + Reset)
 			return
 		}
+
+		// 🔄 Match createWallet: use scrypt
+		key, err := scrypt.Key(password, salt, 1<<15, 8, 1, 32)
+		if err != nil {
+			fmt.Println(Red + "❌ Key derivation failed: " + err.Error() + Reset)
+			return
+		}
+
+		ciphertext, err := base64.StdEncoding.DecodeString(encrypted.Data)
+		if err != nil || len(ciphertext) < 12 {
+			fmt.Println(Red + "❌ Invalid ciphertext." + Reset)
+			return
+		}
+
+		nonce := ciphertext[:12]
+		ciphertext = ciphertext[12:]
+
+		block, err := aes.NewCipher(key)
+		if err != nil {
+			fmt.Println(Red + "❌ AES cipher error: " + err.Error() + Reset)
+			return
+		}
+
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			fmt.Println(Red + "❌ AES-GCM init error: " + err.Error() + Reset)
+			return
+		}
+
+		plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+		if err != nil {
+			fmt.Println(Red + "❌ Decryption failed. Wrong password?" + Reset)
+			return
+		}
+
+		var wallet map[string]string
+		if err := json.Unmarshal(plaintext, &wallet); err != nil {
+			fmt.Println(Red + "❌ Failed to parse decrypted wallet: " + err.Error() + Reset)
+			return
+		}
+
+		publicKeyHex, ok := wallet["publicKey"]
+		privateKeyHex, ok2 := wallet["privateKey"]
+		if !ok || !ok2 {
+			fmt.Println(Red + "❌ Missing public/private key in wallet." + Reset)
+			return
+		}
+
 		privateKey, err := hex.DecodeString(privateKeyHex)
-		if err != nil {
-			fmt.Println(Red + "❌ Invalid private key format: " + err.Error() + Reset)
-			return
-		}
-		if len(privateKey) != ed25519.SeedSize {
-			fmt.Println(Red + "❌ Expected 32-byte private key seed for Ed25519" + Reset)
+		if err != nil || len(privateKey) != ed25519.SeedSize {
+			fmt.Println(Red + "❌ Invalid private key." + Reset)
 			return
 		}
 		privKey := ed25519.NewKeyFromSeed(privateKey)
