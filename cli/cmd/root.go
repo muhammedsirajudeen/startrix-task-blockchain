@@ -11,7 +11,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "startrix-cli",
-	Short: "Cold wallet",
+	Short: "Cold wallet version 1.0.0",
 	Long: `Cold wallet:
 
 Cold wallet`,
